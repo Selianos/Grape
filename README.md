@@ -60,15 +60,13 @@ installed", which links to the install guide).
 ```
 extension/     → the GNOME Shell extension (zipped for EGO)
 service/       → the Python OCR service (grape-engine)
-tools/bench.py → latency benchmark on sample crops
 ```
 
 ## Development
 
 The extension lives in `extension/` and is zipped for
 [extensions.gnome.org](https://extensions.gnome.org/). The engine is a single
-Python package in `service/`. To reproduce realistic timings on the reference
-machine, run `python tools/bench.py` with crops under `tools/crops/{lines,paragraphs}/`.
+Python package in `service/`.
 `grape-engine install-models` guesses which RapidOCR model files to use; the
 expected `det`/`rec`/`cls` names are not yet confirmed against a real install, so
 run `grape-engine doctor` right after and report any mismatch.
