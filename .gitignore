@@ -20,5 +20,5 @@ extension/schemas/gschemas.compiled
 # Internal documentation (only README.md is published)
 /docs/
 
-# Benchmark sample crops (binary images; regenerated locally)
-/tools/crops/
+# Benchmark tooling and sample crops
+/tools/
