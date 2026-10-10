@@ -13,12 +13,12 @@ venv/
 .pytest_cache/
 
 # Build artifacts
-/grape.zip
 service/build/
 service/dist/
 extension/schemas/gschemas.compiled
 
 # Internal documentation (only README.md is published)
 /docs/
-/Development Plan.md
-/Progress.md
+
+# Benchmark sample crops (binary images; regenerated locally)
+/tools/crops/

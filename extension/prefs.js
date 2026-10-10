@@ -98,6 +98,14 @@ const MODIFIER_KEYS = new Set([
     Gdk.KEY_Hyper_L, Gdk.KEY_Hyper_R,
 ]);
 
+const MODIFIER_STATE_MASK =
+    Gdk.ModifierType.SHIFT_MASK |
+    Gdk.ModifierType.CONTROL_MASK |
+    Gdk.ModifierType.ALT_MASK |
+    Gdk.ModifierType.META_MASK |
+    Gdk.ModifierType.SUPER_MASK |
+    Gdk.ModifierType.HYPER_MASK;
+
 function showShortcutDialog(settings, window, onChanged) {
     const dialog = new Gtk.Window({
         transient_for: window,
@@ -108,7 +116,8 @@ function showShortcutDialog(settings, window, onChanged) {
     });
 
     const hint = new Gtk.Label({
-        label: _('Press the key combination you want to use.'),
+        label: _('Press the key combination you want to use.\\n\\n' +
+                  '⚠️ IMPORTANT: If GNOME screenshot shortcut still works, please:\\n1. Settings → Keyboard Shortcuts\\n2. Turn off "Take Screenshot" or rebind it\\n\\nNote: This shortcut triggers globally, so set a unique combination like Ctrl+Alt+S.'),
         wrap: true,
         margin_top: 16,
         margin_bottom: 8,
@@ -157,6 +166,8 @@ function showShortcutDialog(settings, window, onChanged) {
         }
         if (MODIFIER_KEYS.has(keyval))
             return Gdk.EVENT_PROPAGATE;
+        if ((state & MODIFIER_STATE_MASK) === 0)
+            return Gdk.EVENT_PROPAGATE;
 
         const accel = Gtk.accelerator_name(keyval, state);
         if (accel) {
@@ -181,14 +192,15 @@ function formatJob(entry) {
 }
 
 function showLogDialog(window) {
-    const textBuffer = new Gtk.TextBuffer();
-    const reload = () => {
-        const entries = readJobs();
-        textBuffer.set_text(
-            entries.map(formatJob).join('\n\n') || _('No jobs yet.'));
-    };
-    reload();
+    const dialog = new Gtk.Window({
+        transient_for: window,
+        modal: true,
+        title: _('Job log'),
+        default_width: 480,
+        default_height: 360,
+    });
 
+    const textBuffer = new Gtk.TextBuffer();
     const textView = new Gtk.TextView({
         buffer: textBuffer,
         editable: false,
@@ -197,7 +209,17 @@ function showLogDialog(window) {
     });
     textView.add_css_class('monospace');
 
-    const scroller = new Gtk.ScrolledWindow();
+    const reload = () => {
+        const entries = readJobs();
+        textBuffer.set_text(
+            entries.map(formatJob).join('\n\n') || _('No jobs yet.'));
+    };
+    reload();
+
+    const scroller = new Gtk.ScrolledWindow({
+        hscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+        vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+    });
     scroller.set_child(textView);
     scroller.set_vexpand(true);
 
@@ -220,21 +242,11 @@ function showLogDialog(window) {
     buttons.append(clear);
     buttons.append(close);
 
-    const box = new Gtk.Box({
-        orientation: Gtk.Orientation.VERTICAL,
-        spacing: 8,
-    });
+    const box = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL});
     box.append(scroller);
     box.append(buttons);
-
-    const dialog = new Gtk.Window({
-        transient_for: window,
-        modal: true,
-        title: _('Grape log'),
-        default_width: 480,
-        default_height: 360,
-    });
     dialog.set_child(box);
+
     dialog.present();
 }
 
@@ -251,7 +263,7 @@ export default class GrapePreferences extends ExtensionPreferences {
             title: _('Shortcut'),
         });
         const shortcutRow = new Adw.ActionRow({
-            title: _('OCR shortcut'),
+            title: _('Set keyboard shortcut'),
             subtitle: accelLabel(settings.get_strv(SCHEMA_KEY)),
             activatable: true,
         });
@@ -272,7 +284,11 @@ export default class GrapePreferences extends ExtensionPreferences {
             title: _('Status'),
             subtitle: _('Checking…'),
         });
-        const refresh = new Gtk.Button({label: _('Refresh')});
+        const refresh = new Gtk.Button();
+        const refreshIcon = new Gtk.Image({
+            icon_name: 'view-refresh-symbolic',
+        });
+        refresh.set_child(refreshIcon);
         const refreshStatus = () => {
             statusRow.set_subtitle(_('Checking…'));
             engineStatus().then((status) => statusRow.set_subtitle(status));
@@ -285,7 +301,11 @@ export default class GrapePreferences extends ExtensionPreferences {
             title: _('Setup'),
             subtitle: _('Install the engine and models.'),
         });
-        const guide = new Gtk.Button({label: _('Install guide')});
+        const guide = new Gtk.Button();
+        const guideIcon = new Gtk.Image({
+            icon_name: 'emblem-downloads-symbolic',
+        });
+        guide.set_child(guideIcon);
         guide.connect('clicked', () =>
             Gio.AppInfo.launch_default_for_uri(INSTALL_URL, null));
         guideRow.add_suffix(guide);
@@ -301,14 +321,30 @@ export default class GrapePreferences extends ExtensionPreferences {
             subtitle: _('Last 50 jobs, newest first.'),
             activatable: true,
         });
-        showLogRow.connect('activated', () => showLogDialog(window));
+        showLogRow.connect('activated', () => {
+            showLogDialog(window);
+        });
         logGroup.add(showLogRow);
 
         const clearLogRow = new Adw.ActionRow({
             title: _('Clear log'),
-            activatable: true,
         });
-        clearLogRow.connect('activated', () => clearJobs());
+        const clearBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 8,
+            halign: Gtk.Align.END,
+            margin_bottom: 16,
+            margin_start: 16,
+            margin_end: 16,
+        });
+        const clearIcon = new Gtk.Image({
+            icon_name: 'edit-clear-symbolic',
+        });
+        clearBox.append(clearIcon);
+        clearLogRow.add_suffix(clearBox);
+        clearLogRow.connect('activated', () => {
+            clearJobs();
+        });
         logGroup.add(clearLogRow);
         page.add(logGroup);
 

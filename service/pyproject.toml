@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "grape-engine"
 version = "1.0.0"
 description = "RapidOCR-backed D-Bus OCR service used by the Grape GNOME Shell extension"
-readme = "README.md"
+
 license = { text = "GPL-2.0-or-later" }
 requires-python = ">=3.10"
 authors = [{ name = "Grape maintainers" }]
@@ -37,6 +37,3 @@ grape-engine-dbus = "grape_engine.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-grape_engine = ["py.typed"]
