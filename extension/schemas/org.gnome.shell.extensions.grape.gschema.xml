@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="grape">
+  <schema id="org.gnome.shell.extensions.grape"
+          path="/org/gnome/shell/extensions/grape/"
+          gettext-domain="grape">
+    <key name="ocr-shortcut" type="as">
+      <default>[]</default>
+      <summary>Keyboard shortcut to grab text from the screen</summary>
+      <description>
+        Pressing this shortcut opens the GNOME area-screenshot UI and, once you
+        select a region, writes the recognised text to the clipboard.
+        Empty by default: set it in the extension's settings.
+      </description>
+    </key>
+  </schema>
+</schemalist>

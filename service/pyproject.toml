@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grape-engine"
+version = "1.0.0"
+description = "RapidOCR-backed D-Bus OCR service used by the Grape GNOME Shell extension"
+readme = "README.md"
+license = { text = "GPL-2.0-or-later" }
+requires-python = ">=3.10"
+authors = [{ name = "Grape maintainers" }]
+keywords = ["ocr", "rapidocr", "gnome", "dbus"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics :: Capture :: Screen Capture",
+]
+
+dependencies = [
+    "dbus-fast>=2.21,<3",
+    "rapidocr>=2.0,<3",
+    "onnxruntime>=1.16",
+]
+
+[project.optional-dependencies]
+bench = ["pillow>=10"]
+
+[project.scripts]
+grape-engine = "grape_engine.setup_cmds:main"
+
+[project.gui-scripts]
+grape-engine-dbus = "grape_engine.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+grape_engine = ["py.typed"]

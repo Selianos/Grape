@@ -1,0 +1,7 @@
+# Template for the D-Bus activation file.
+# `grape-engine install-dbus` writes a copy of this into
+# ~/.local/share/dbus-1/services/ with the real interpreter path.
+
+[D-BUS Service]
+Name=io.github.Selianos.Grape1
+Exec=/usr/bin/python3 -m grape_engine

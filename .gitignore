@@ -1,0 +1,24 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Build artifacts
+/grape.zip
+service/build/
+service/dist/
+extension/schemas/gschemas.compiled
+
+# Internal documentation (only README.md is published)
+/docs/
+/Development Plan.md
+/Progress.md
