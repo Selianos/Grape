@@ -89,10 +89,11 @@ export function readJobs() {
 /** Empty the job log. Used by the preferences "Clear log" button. */
 export function clearJobs() {
     const file = Gio.File.new_for_path(logPath());
-    file.replace_contents(
-        new Uint8Array(0),
+    getParentDir(file);
+    const stream = file.replace(
         null,
         false,
-        Gio.FileCreateFlags.NONE,
+        Gio.FileCreateFlags.REPLACE_DESTINATION,
         null);
+    stream.close(null);
 }

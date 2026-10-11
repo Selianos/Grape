@@ -23,6 +23,7 @@ export default class GrapeExtension extends Extension {
     _engine = null;
     _settings = null;
     _busy = false;
+    _armed = false;
     _taken = false;
 
     enable() {
@@ -52,6 +53,7 @@ export default class GrapeExtension extends Extension {
         this._engine = null;
         this._capture = null;
         this._busy = false;
+        this._armed = false;
         this._taken = false;
     }
 
@@ -73,6 +75,7 @@ export default class GrapeExtension extends Extension {
         if (this._busy)
             return;
         this._busy = true;
+        this._armed = true;
         this._taken = false;
         // Fire the engine's cold start without waiting: the model load overlaps
         // the user's region selection. Errors surface at Recognize.
@@ -81,6 +84,13 @@ export default class GrapeExtension extends Extension {
     }
 
     _onScreenshotTaken(path) {
+        // Main.screenshotUI is a shared singleton: any screenshot taken
+        // through it fires this signal, not just ones we opened (the
+        // system's own screenshot shortcut, other extensions, etc). Only
+        // react when our own shortcut armed a capture.
+        if (!this._armed)
+            return;
+        this._armed = false;
         this._taken = true;
         this._recognize(path);
     }
@@ -89,6 +99,7 @@ export default class GrapeExtension extends Extension {
         // No region was selected: release the guard so the next press works.
         if (!this._taken)
             this._busy = false;
+        this._armed = false;
         this._taken = false;
     }
 

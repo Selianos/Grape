@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.4"/>
+
+  <object class="AdwPreferencesPage" id="main_page">
+
+    <!-- Shortcut -->
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Shortcut</property>
+        <property name="description" translatable="yes">Pick a combination GNOME isn't already using, like Ctrl+Alt+S.</property>
+        <child>
+          <object class="AdwActionRow" id="shortcut_row">
+            <property name="title" translatable="yes">Keyboard shortcut</property>
+            <property name="activatable">true</property>
+            <child type="suffix">
+              <object class="GtkShortcutLabel" id="shortcut_label">
+                <property name="accelerator"></property>
+                <property name="disabled-text" translatable="yes">Not set</property>
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <!-- Engine -->
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Engine</property>
+        <child>
+          <object class="AdwActionRow" id="status_row">
+            <property name="title" translatable="yes">Status</property>
+            <property name="subtitle" translatable="yes">Checking…</property>
+            <child type="suffix">
+              <object class="GtkButton" id="refresh_button">
+                <property name="icon-name">view-refresh-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Check again</property>
+                <property name="valign">center</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwActionRow" id="setup_row">
+            <property name="title" translatable="yes">Setup</property>
+            <property name="subtitle" translatable="yes">Follow the setup steps on GitHub</property>
+            <child type="suffix">
+              <object class="GtkButton" id="guide_button">
+                <property name="label" translatable="yes">Open guide</property>
+                <property name="tooltip-text" translatable="yes">Open the project page in your browser</property>
+                <property name="valign">center</property>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <!-- Log -->
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Log</property>
+        <child>
+          <object class="AdwExpanderRow" id="log_row">
+            <property name="title" translatable="yes">Show log</property>
+            <property name="subtitle" translatable="yes">Last 50 jobs, newest first</property>
+            <child type="suffix">
+              <object class="GtkButton" id="clear_log_button">
+                <property name="icon-name">user-trash-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Clear log</property>
+                <property name="valign">center</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+
+  </object>
+</interface>
