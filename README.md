@@ -26,7 +26,9 @@ screenshot editing, no window switching, no manual OCR step.
 - **Clean results.** Text is grouped into lines (top to bottom, left to right)
   and joined with line breaks.
 - **Safe.** Nothing runs at login; the engine is started by the session bus on
-  demand and exits after 120 s idle. No `wl-copy`, no external binaries.
+  demand and exits after 120 s idle. The only optional shell-out is `wl-copy`,
+  used so the text lands in clipboard history; when it is missing Grape falls
+  back to the internal clipboard API.
 
 > **v1 scope:** English text, CPU only, single lines and paragraphs. Arabic,
 > auto-delete and other settings are planned after v1.

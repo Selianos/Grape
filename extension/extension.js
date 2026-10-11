@@ -136,14 +136,45 @@ export default class GrapeExtension extends Extension {
     // -- clipboard ------------------------------------------------------------
 
     _copyToClipboard(text) {
+        // GNOME's screenshot UI already put the captured image on the
+        // clipboard, from within gnome-shell. Clipboard managers that watch
+        // the owner-change signal (e.g. Vicinae, Clipboard Indicator) only
+        // record a selection when the owner actually changes, and the Shell
+        // setting its own text does not count as one. wl-copy is a separate
+        // process, so the owner really changes and the entry shows up.
+        // Fall back to the Shell's clipboard API when wl-copy is not installed:
+        // paste still works, the entry just may not reach history managers.
+        const wlCopy = GLib.find_program_in_path('wl-copy');
+        if (wlCopy)
+            this._copyWithWlCopy(wlCopy, text);
+        else
+            this._copyWithStClipboard(text);
+    }
+
+    _copyWithWlCopy(wlCopy, text) {
+        // Gio.Subprocess spawns wl-copy in a way that its forked daemon exits 0
+        // but never claims the clipboard, so the text silently never lands.
+        // GLib.spawn_async detaches the daemon that then owns and serves the
+        // selection. Pass text as one argv element (with `--`) so spaces and
+        // newlines survive verbatim and a leading dash is not read as an option.
+        try {
+            GLib.spawn_async(
+                null,
+                [wlCopy, '-t', 'text/plain', '--', text],
+                null,
+                GLib.SpawnFlags.SEARCH_PATH,
+                null);
+        } catch (err) {
+            console.warn('wl-copy failed to set the clipboard: ' + err.message);
+        }
+    }
+
+    _copyWithStClipboard(text) {
         const clipboard = St.Clipboard.get_default();
         clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
-        // GNOME's screenshot UI already put the captured image on the
-        // clipboard a moment ago, from this same process. Clipboard managers
-        // that watch Mutter's selection owner-changed signal (e.g. Vicinae)
-        // can miss this immediate follow-up write, so re-assert once that
-        // first change has settled, as long as nothing else grabbed the
-        // clipboard in the meantime.
+        // The Shell's own clipboard API can be missed by history managers, so
+        // re-assert once after the write settles, as long as nothing else
+        // grabbed the clipboard in the meantime.
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
             clipboard.get_text(St.ClipboardType.CLIPBOARD, (_cb, current) => {
                 if (current === text)
