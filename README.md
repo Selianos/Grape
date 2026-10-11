@@ -40,8 +40,8 @@ PyPI yet):
 
 ```sh
 cd /path/to/grape
-sudo dnf install pipx python3.13
-pipx install --python python3.13 ./service
+sudo dnf install pipx
+pipx install ./service
 pipx ensurepath
 grape-engine install-models    # one-time download; offline from then on
 grape-engine install-dbus      # registers the service with the session bus
@@ -69,9 +69,9 @@ service/       → the Python OCR service (grape-engine)
 The extension lives in `extension/` and is zipped for
 [extensions.gnome.org](https://extensions.gnome.org/). The engine is a single
 Python package in `service/`.
-`grape-engine install-models` guesses which RapidOCR model files to use; the
-expected `det`/`rec`/`cls` names are not yet confirmed against a real install, so
-run `grape-engine doctor` right after and report any mismatch.
+`grape-engine install-models` guesses which RapidOCR model files to use; this is
+confirmed against a real RapidOCR install (det/rec = PP-OCRv4, cls = mobile v2.0).
+Run `grape-engine doctor` right after to confirm the files landed.
 
 ## License
 
