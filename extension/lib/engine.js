@@ -49,7 +49,7 @@ export class Engine {
     /**
      * OCR one image and return {text, meta}. @meta holds elapsed_ms, line_count
      * and confidence as reported by the engine.
-     * @param {string} path - absolute path of the PNG in ~/Pictures/Screenshots.
+     * @param {string} path - absolute path of the PNG in the user's Pictures directory.
      * @returns {Promise<{text: string, meta: object}>}
      */
     async recognize(path) {

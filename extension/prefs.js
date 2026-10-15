@@ -10,12 +10,11 @@ import {
 
 import {clearJobs, readJobs} from './lib/joblog.js';
 import {recursiveUnpack} from './lib/unpack.js';
+import {REPO} from './lib/links.js';
 
 const SCHEMA_KEY = 'ocr-shortcut';
 const BUS_NAME = 'io.github.Selianos.Grape1';
 const OBJECT_PATH = '/io/github/Selianos/Grape1';
-const GITHUB_URL =
-    'https://github.com/Selianos/Grape';
 
 Gio._promisify(Gio.DBusProxy.prototype, 'call');
 
@@ -196,7 +195,7 @@ export default class GrapePreferences extends ExtensionPreferences {
         };
         get('refresh_button').connect('clicked', refreshStatus);
         get('guide_button').connect('clicked', () =>
-            Gio.AppInfo.launch_default_for_uri(GITHUB_URL, null));
+            Gio.AppInfo.launch_default_for_uri(REPO, null));
 
         // Log
         const logRow = get('log_row');

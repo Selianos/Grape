@@ -13,10 +13,9 @@ import {
 import {Capture} from './lib/capture.js';
 import {Engine} from './lib/engine.js';
 import {appendJob} from './lib/joblog.js';
+import {INSTALL_GUIDE} from './lib/links.js';
 
 const SCHEMA_KEY = 'ocr-shortcut';
-const INSTALL_URL =
-    'https://github.com/selianos/grape/blob/main/docs/INSTALL.md';
 
 export default class GrapeExtension extends Extension {
     _capture = null;
@@ -213,6 +212,6 @@ export default class GrapeExtension extends Extension {
             _('The engine is not installed.'));
         notification.addAction(
             _('Open install guide'),
-            () => Gio.AppInfo.launch_default_for_uri(INSTALL_URL, null));
+            () => Gio.AppInfo.launch_default_for_uri(INSTALL_GUIDE, null));
     }
 }

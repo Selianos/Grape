@@ -18,7 +18,7 @@ export class Capture {
 
     /**
      * Open the area-selection UI. The UI writes the captured region to
-     * ~/Pictures/Screenshots and emits 'screenshot-taken' with the file.
+     * the user's Pictures directory and emits 'screenshot-taken' with the file.
      */
     open() {
         this._ui.open(SCREENSHOT_MODE);

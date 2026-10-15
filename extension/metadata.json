@@ -2,7 +2,7 @@
   "uuid": "grape@selianos.github.io",
   "name": "Grape",
   "description": "Grab text from the screen with RapidOCR. Press your shortcut, select a region in GNOME's screenshot UI, and the English text lands on your clipboard.",
-  "url": "https://github.com/selianos/grape",
+  "url": "https://github.com/Selianos/Grape",
   "shell-version": ["50"],
   "settings-schema": "org.gnome.shell.extensions.grape",
   "gettext-domain": "grape"

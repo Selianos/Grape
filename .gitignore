@@ -17,8 +17,9 @@ service/build/
 service/dist/
 extension/schemas/gschemas.compiled
 
-# Internal documentation (only README.md is published)
-/docs/
+# Private agent/working notes — not shipped.
+/.agent/
+/.agent/
 
-# Benchmark tooling and sample crops
-/tools/
+# QA artifacts are generated per run.
+/QA/

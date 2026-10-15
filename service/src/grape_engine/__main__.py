@@ -27,7 +27,7 @@ from .paths import (
     MAX_IMAGE_BYTES,
     MODELS_DIR,
     OBJECT_PATH,
-    SCREENSHOT_DIR,
+    pictures_dir,
     dbus_error,
 )
 
@@ -61,7 +61,7 @@ class GrapeService(ServiceInterface):
             self._state = "ready"
 
     def _validate_path(self, raw_path: str) -> Path:
-        """Reject anything that is not an image in the screenshot folder.
+        """Reject anything that is not an image in the user's pictures folder.
 
         Keeps the service boundary narrow: the extension only ever passes paths
         written by GNOME's screenshot UI.
@@ -72,12 +72,14 @@ class GrapeService(ServiceInterface):
 
         try:
             resolved = path.resolve()
-            root = SCREENSHOT_DIR.resolve()
+            root = pictures_dir().resolve()
         except OSError as exc:
             raise DBusError(dbus_error("BadImage"), f"bad path: {exc}") from exc
 
         if not resolved.is_relative_to(root):
-            raise DBusError(dbus_error("BadImage"), "file is outside the screenshot folder")
+            raise DBusError(
+                dbus_error("BadImage"),
+                f"file is outside the pictures folder ({root})")
         if resolved.suffix.lower() not in IMAGE_EXTENSIONS:
             raise DBusError(dbus_error("BadImage"), f"unsupported image type: {resolved.suffix}")
         if not resolved.is_file():
