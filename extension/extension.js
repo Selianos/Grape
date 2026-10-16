@@ -24,8 +24,11 @@ export default class GrapeExtension extends Extension {
     _busy = false;
     _armed = false;
     _taken = false;
+    _enabled = false;
+    _cancellable = null;
 
     enable() {
+        this._enabled = true;
         this._capture = new Capture();
         this._engine = new Engine();
         this._settings = this.getSettings();
@@ -45,6 +48,14 @@ export default class GrapeExtension extends Extension {
     }
 
     disable() {
+        this._enabled = false;
+
+        // Cancel the in-flight job before dropping the proxy, so its
+        // continuation cannot touch the clipboard or the message tray after
+        // teardown.
+        this._cancellable?.cancel();
+        this._cancellable = null;
+
         Main.wm.removeKeybinding(SCHEMA_KEY);
         this._capture?.disconnect();
         this._settings?.disconnectObject(this);
@@ -76,9 +87,10 @@ export default class GrapeExtension extends Extension {
         this._busy = true;
         this._armed = true;
         this._taken = false;
+        this._cancellable = new Gio.Cancellable();
         // Fire the engine's cold start without waiting: the model load overlaps
         // the user's region selection. Errors surface at Recognize.
-        this._engine.warmup().catch(
+        this._engine.warmup(this._cancellable).catch(
             (err) => console.debug(`Grape: warmup failed: ${err.message}`));
 
         try {
@@ -116,13 +128,20 @@ export default class GrapeExtension extends Extension {
 
     async _recognize(path) {
         const startUs = GLib.get_monotonic_time();
+        const cancellable = this._cancellable;
         let record;
         try {
-            const {text} = await this._engine.recognize(path);
+            const {text} = await this._engine.recognize(path, cancellable);
+            if (!this._enabled)
+                return;
             this._copyToClipboard(text);
             this._notify(_('Text copied'));
             record = {success: true, error: null, text};
         } catch (err) {
+            if (err instanceof Gio.IOErrorEnum && err.code === Gio.IOErrorEnum.CANCELLED)
+                return;
+            if (!this._enabled)
+                return;
             record = {success: false, error: err.message, text: ''};
             if (Engine.isError(err, 'NoText')) {
                 this._notify(
@@ -135,12 +154,20 @@ export default class GrapeExtension extends Extension {
                 this._notify(_('Failed to copy'), err.message);
             }
         } finally {
-            appendJob({
-                time: new Date().toISOString(),
-                durationMs: (GLib.get_monotonic_time() - startUs) / 1000,
-                ...record,
-            });
+            // Release the guard first: a throw from appendJob must not leave
+            // _busy stuck true, which would kill the shortcut until re-enable.
             this._busy = false;
+            if (record) {
+                try {
+                    appendJob({
+                        time: new Date().toISOString(),
+                        durationMs: (GLib.get_monotonic_time() - startUs) / 1000,
+                        ...record,
+                    });
+                } catch (err) {
+                    console.warn(`Grape: could not write the job log: ${err.message}`);
+                }
+            }
         }
     }
 
@@ -183,16 +210,6 @@ export default class GrapeExtension extends Extension {
     _copyWithStClipboard(text) {
         const clipboard = St.Clipboard.get_default();
         clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
-        // The Shell's own clipboard API can be missed by history managers, so
-        // re-assert once after the write settles, as long as nothing else
-        // grabbed the clipboard in the meantime.
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
-            clipboard.get_text(St.ClipboardType.CLIPBOARD, (_cb, current) => {
-                if (current === text)
-                    clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
-            });
-            return GLib.SOURCE_REMOVE;
-        });
     }
 
     // -- notifications ------------------------------------------------------

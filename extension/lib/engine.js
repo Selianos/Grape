@@ -32,18 +32,18 @@ export class Engine {
         });
     }
 
-    _call(method, params) {
+    _call(method, params, cancellable = null) {
         return this._proxy.call(
             method,
             params,
             Gio.DBusCallFlags.NONE,
             -1,
-            null);
+            cancellable);
     }
 
     /** Load the models if they are not loaded yet. Fire-and-forget from the UI. */
-    async warmup() {
-        await this._call('Warmup', new GLib.Variant('()', []));
+    async warmup(cancellable = null) {
+        await this._call('Warmup', new GLib.Variant('()', []), cancellable);
     }
 
     /**
@@ -52,9 +52,9 @@ export class Engine {
      * @param {string} path - absolute path of the PNG in the user's Pictures directory.
      * @returns {Promise<{text: string, meta: object}>}
      */
-    async recognize(path) {
+    async recognize(path, cancellable = null) {
         const params = new GLib.Variant('(sa{sv})', [path, {}]);
-        const reply = await this._call('Recognize', params);
+        const reply = await this._call('Recognize', params, cancellable);
         // Gio.DBusProxy.call() wraps the single return value in a one-element
         // tuple, so the (sa{sv}) struct arrives as [[text, meta]].
         const [[text, meta]] = recursiveUnpack(reply);
