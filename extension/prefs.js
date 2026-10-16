@@ -34,6 +34,14 @@ const SERVICE_FILE = GLib.build_filenamev([
     `${BUS_NAME}.service`,
 ]);
 
+//: Human-readable label for each GetStatus state.
+const STATE_LABELS = {
+    'ready': () => _('Ready'),
+    'loading': () => _('Loading models…'),
+    'models-missing': () => _('Models not installed — run `grape-engine install-models`'),
+    'error': () => _('Engine error — run `grape-engine doctor`'),
+};
+
 async function engineStatus() {
     try {
         const names = await busProxy.call(
@@ -61,9 +69,7 @@ async function engineStatus() {
                     -1,
                     null);
                 const [[state]] = recursiveUnpack(reply);
-                return state === 'ready' ?
-                    _('Ready') :
-                    _('Loading models…');
+                return (STATE_LABELS[state] ?? STATE_LABELS['loading'])();
             } catch {
                 // The name is owned but the status call failed; don't report
                 // a running engine as missing.

@@ -9,17 +9,18 @@ next one, so nothing runs at login.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import sys
 import time
 from pathlib import Path
 
-from dbus_fast import BusType, DBusError, Variant
+from dbus_fast import BusType, DBusError, RequestNameReply, Variant
 from dbus_fast.aio import MessageBus
 from dbus_fast.service import ServiceInterface, method
 
 from . import __version__
-from .ocr import OCREngine, GrapeError
+from .ocr import ModelMissingError, OCREngine, GrapeError
 from .paths import (
     BUS_NAME,
     IDLE_TIMEOUT_S,
@@ -53,11 +54,22 @@ class GrapeService(ServiceInterface):
         return time.monotonic() - self._last_activity
 
     async def _ensure_loaded(self) -> None:
-        """Load the engine exactly once. Safe to call from several methods."""
+        """Load the engine exactly once. Safe to call from several methods.
+
+        A failure has to move the state too: a state stuck on 'loading' tells
+        the user to wait for something that will never finish.
+        """
         async with self._load_lock:
             if self._engine._loaded:
                 return
-            await asyncio.to_thread(self._engine.load)
+            try:
+                await asyncio.to_thread(self._engine.load)
+            except ModelMissingError:
+                self._state = "models-missing"
+                raise
+            except Exception:
+                self._state = "error"
+                raise
             self._state = "ready"
 
     def _validate_path(self, raw_path: str) -> Path:
@@ -93,9 +105,13 @@ class GrapeService(ServiceInterface):
 
     @method()
     def GetStatus(self) -> "(ssas)":
-        """Return (state, version, model-file names)."""
+        """Return (state, version, model files present on disk)."""
         self._touch()
-        return (self._state, __version__, list(self._engine.MODEL_FILES))
+        present = [
+            name for name in self._engine.MODEL_FILES
+            if (MODELS_DIR / name).is_file()
+        ]
+        return (self._state, __version__, present)
 
     @method()
     async def Warmup(self) -> "":
@@ -128,28 +144,45 @@ class GrapeService(ServiceInterface):
 
 
 async def _idle_monitor(service: GrapeService, bus: MessageBus) -> None:
-    """Exit the process once the service has been idle long enough."""
+    """Exit the process once the service has been idle long enough.
+
+    Sleeps only as long as the remaining budget so the documented timeout is
+    the real one, rather than the timeout plus a poll interval.
+    """
     while True:
-        await asyncio.sleep(5)
-        if service._idle_for() >= IDLE_TIMEOUT_S:
+        remaining = IDLE_TIMEOUT_S - service._idle_for()
+        if remaining <= 0:
             log.info("idle for %.0fs, exiting", service._idle_for())
             bus.disconnect()
             return
+        await asyncio.sleep(min(remaining, 5))
 
 
 async def _serve() -> None:
     bus = await MessageBus(bus_type=BusType.SESSION).connect()
     service = GrapeService()
     bus.export(OBJECT_PATH, service)
-    await bus.request_name(BUS_NAME)
+
+    reply = await bus.request_name(BUS_NAME)
+    if reply is not RequestNameReply.PRIMARY_OWNER:
+        # Another engine already owns the name; do not linger holding a
+        # connection and an object no caller can reach.
+        log.warning("%s already owned (%s); exiting", BUS_NAME, reply.name)
+        bus.disconnect()
+        return
+
     log.info("Grape engine %s running on %s (%s)", __version__, BUS_NAME, OBJECT_PATH)
 
     idle_task = asyncio.create_task(_idle_monitor(service, bus))
     try:
-        await bus.wait_for_disconnect()
+        # A dropped connection is how this process is meant to end — both the
+        # idle monitor's own disconnect and the bus going away surface here.
+        with contextlib.suppress(EOFError):
+            await bus.wait_for_disconnect()
     finally:
         idle_task.cancel()
-        bus.disconnect()
+        with contextlib.suppress(asyncio.CancelledError):
+            await idle_task
 
 
 def main() -> None:

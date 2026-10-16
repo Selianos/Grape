@@ -70,7 +70,7 @@ export default class GrapeExtension extends Extension {
 
     // -- flow ---------------------------------------------------------------
 
-    _onShortcut() {
+    async _onShortcut() {
         if (this._busy)
             return;
         this._busy = true;
@@ -78,8 +78,20 @@ export default class GrapeExtension extends Extension {
         this._taken = false;
         // Fire the engine's cold start without waiting: the model load overlaps
         // the user's region selection. Errors surface at Recognize.
-        this._engine.warmup().catch(() => {});
-        this._capture.open();
+        this._engine.warmup().catch(
+            (err) => console.debug(`Grape: warmup failed: ${err.message}`));
+
+        try {
+            if (await this._capture.open())
+                return;
+            // The UI declined to open, so no signal is coming; release the
+            // guard here or the shortcut stays dead until the next enable().
+            console.debug('Grape: screenshot UI did not open');
+        } catch (err) {
+            console.warn(`Grape: screenshot UI failed to open: ${err.message}`);
+        }
+        this._busy = false;
+        this._armed = false;
     }
 
     _onScreenshotTaken(path) {

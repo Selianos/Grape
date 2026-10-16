@@ -17,11 +17,16 @@ export class Capture {
     }
 
     /**
-     * Open the area-selection UI. The UI writes the captured region to
-     * the user's Pictures directory and emits 'screenshot-taken' with the file.
+     * Open the area-selection UI. Resolves to true when the UI actually opened:
+     * the Shell's open() returns early (emitting no signal at all) if a
+     * screencast or another opening coroutine is already in progress, and the
+     * caller has to release its guard in that case.
+     *
+     * @returns {Promise<boolean>}
      */
-    open() {
-        this._ui.open(SCREENSHOT_MODE);
+    async open() {
+        await this._ui.open(SCREENSHOT_MODE);
+        return Boolean(this._ui.visible);
     }
 
     /**

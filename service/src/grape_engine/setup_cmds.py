@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .ocr import OCREngine
 from .paths import (
     BUS_NAME,
     DATA_DIR,
@@ -22,6 +23,7 @@ from .paths import (
     SERVICE_FILE,
     SERVICE_FILE_DIR,
     ensure_dirs,
+    pictures_dir,
 )
 
 
@@ -53,6 +55,10 @@ def _find_rapidocr_models() -> list[Path]:
     return onnx_files
 
 
+#: Every role install-models must resolve before it reports success.
+REQUIRED_ROLES = ("det", "rec", "cls")
+
+
 def cmd_install_models() -> int:
     ensure_dirs()
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -62,22 +68,37 @@ def cmd_install_models() -> int:
         print("error: no .onnx models found in the rapidocr package", file=sys.stderr)
         return 1
 
-    copied: list[str] = []
+    candidates: dict[str, list[Path]] = {}
     for src in onnx_files:
         role = _classify_model(src.name)
-        if role is None:
-            continue
-        dest = MODELS_DIR / f"{role}.onnx"
-        shutil.copyfile(src, dest)
-        copied.append(dest.name)
+        if role is not None:
+            candidates.setdefault(role, []).append(src)
 
-    if not copied:
-        print("error: could not identify det/rec/cls models", file=sys.stderr)
+    missing = [role for role in REQUIRED_ROLES if role not in candidates]
+    if missing:
+        print(f"error: no model found for: {', '.join(missing)}", file=sys.stderr)
+        print(f"  candidates were: {', '.join(f.name for f in onnx_files)}", file=sys.stderr)
         return 1
 
-    print(f"installed {len(copied)} model(s) into {MODELS_DIR}:")
-    for name in sorted(copied):
-        print(f"  - {name}")
+    # Refuse to pick for the user: the detection model is the single biggest
+    # lever on the latency budget, so a silent sort-order win is not acceptable.
+    ambiguous = {r: v for r, v in candidates.items() if len(v) > 1}
+    if ambiguous:
+        print("error: several files match the same role; refusing to guess:", file=sys.stderr)
+        for role, files in sorted(ambiguous.items()):
+            print(f"  {role}: {', '.join(f.name for f in files)}", file=sys.stderr)
+        return 1
+
+    installed: list[tuple[str, Path, Path]] = []
+    for role in REQUIRED_ROLES:
+        src = candidates[role][0]
+        dest = MODELS_DIR / f"{role}.onnx"
+        shutil.copyfile(src, dest)
+        installed.append((role, src, dest))
+
+    print(f"installed {len(installed)} model(s) into {MODELS_DIR}:")
+    for role, src, dest in installed:
+        print(f"  - {dest.name}  <- {src.name}")
     return 0
 
 
@@ -170,10 +191,24 @@ def cmd_doctor() -> int:
     except ImportError:
         check("rapidocr", False, "not installed")
 
-    model_names = ("det.onnx", "rec.onnx", "cls.onnx")
-    missing = [n for n in model_names if not (MODELS_DIR / n).is_file()]
+    missing = [n for n in OCREngine.MODEL_FILES if not (MODELS_DIR / n).is_file()]
     check("models", not missing, ", ".join(missing) if missing else f"found in {MODELS_DIR}")
     check("dbus service file", SERVICE_FILE.is_file(), str(SERVICE_FILE))
+
+    # The activation file bakes in sys.executable, so a pipx reinstall or a
+    # Fedora Python bump can leave it pointing at an interpreter that is gone.
+    # This is the failure TROUBLESHOOTING.md anticipates, so check it here.
+    if SERVICE_FILE.is_file():
+        exec_path = ""
+        for line in SERVICE_FILE.read_text(encoding="utf-8").splitlines():
+            if line.startswith("Exec="):
+                exec_path = line.removeprefix("Exec=").split()[0]
+                break
+        check("dbus Exec interpreter", bool(exec_path) and Path(exec_path).is_file(),
+              exec_path or "no Exec= line")
+
+    pictures = pictures_dir()
+    check("pictures dir", pictures.is_dir(), str(pictures))
 
     print()
     if not ok:
