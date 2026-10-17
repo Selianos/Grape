@@ -7,8 +7,9 @@ crops split into ``lines/`` and ``paragraphs/`` subfolders:
     tools/crops/lines/*.png        single-line crops
     tools/crops/paragraphs/*.png   multi-line paragraph crops
 
-It reports the cold-start (engine + model load) time and, per group, the warm
-recognition time as median, p95 and worst. Run without arguments to use the
+It reports the cold-start model-load time on its own, the (discarded) first
+inference separately, and then per group the warm recognition time as the
+median, p95 and worst. Run without arguments to use the
 default crop folder; any image under the folder is measured.
 
 Usage: python tools/bench.py [crop_dir]
@@ -60,13 +61,24 @@ def _stats(times: Sequence[float]) -> tuple[float, float, float]:
 def main(argv: list[str] | None = None) -> int:
     crop_dir = Path(argv[0]) if argv else Path(__file__).resolve().parent / "crops"
     groups = _collect(crop_dir)
-
     engine = OCREngine(MODELS_DIR)
 
-    # Cold start: build and load the engine once.
     cold_start = time.perf_counter()
     engine.load()
     cold_ms = (time.perf_counter() - cold_start) * 1000
+
+    # The first inference after load() runs ~1.5x the steady-state cost (lazy
+    # allocation inside onnxruntime). Report it separately instead of letting
+    # it skew the warm median the budget is judged against.
+    first_ms = 0.0
+    warmup_file = next((f for files in groups.values() for f in files), None)
+    if warmup_file is not None:
+        start = time.perf_counter()
+        try:
+            engine.recognize(warmup_file)
+            first_ms = (time.perf_counter() - start) * 1000
+        except Exception as exc:  # a crop the engine can't read
+            print(f"  [skip] warm-up {warmup_file.name}: {exc}")
 
     results: dict[str, list[float]] = {}
     for name, files in groups.items():
@@ -83,11 +95,17 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"crop dir     : {crop_dir}")
     print(f"models       : {MODELS_DIR}")
-    print(f"cold start   : {cold_ms:.1f} ms")
+    print(f"cold start   : {cold_ms:.1f} ms  (model load)")
+    print(f"first infer  : {first_ms:.1f} ms  (discarded from the stats below)")
+    print(f"total cold   : {cold_ms + first_ms:.1f} ms  (what the user pays on the first press)")
     print()
     for name, times in results.items():
         med, p95, worst = _stats(times)
-        print(f"{name:<12} n={len(times):<3} median={med:7.1f} ms  p95={p95:7.1f} ms  worst={worst:7.1f} ms")
+        p95_text = f"{p95:7.1f} ms" if len(times) >= 20 else "    n/a"
+        print(
+            f"{name:<12} n={len(times):<3} median={med:7.1f} ms  "
+            f"p95={p95_text}  worst={worst:7.1f} ms"
+        )
 
     total = sum(len(t) for t in results.values())
     if total:
