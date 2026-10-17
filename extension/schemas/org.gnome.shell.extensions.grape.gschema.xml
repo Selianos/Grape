@@ -12,5 +12,14 @@
         Empty by default: set it in the extension's settings.
       </description>
     </key>
+    <key name="log-text" type="b">
+      <default>false</default>
+      <summary>Store recognised text in the job log</summary>
+      <description>
+        When off, the job log records only the length of the recognised text.
+        Screen OCR can capture passwords and other secrets, so this is off by
+        default.
+      </description>
+    </key>
   </schema>
 </schemalist>

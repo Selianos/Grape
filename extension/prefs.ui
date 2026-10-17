@@ -85,6 +85,17 @@
             </child>
           </object>
         </child>
+        <child>
+          <object class="AdwActionRow" id="log_text_row">
+            <property name="title" translatable="yes">Store recognised text</property>
+            <property name="subtitle" translatable="yes">When off, the log records only how much text was recognised</property>
+            <child type="suffix">
+              <object class="GtkSwitch" id="log_text_switch">
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
 

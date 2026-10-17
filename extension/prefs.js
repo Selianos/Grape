@@ -146,8 +146,11 @@ function showShortcutDialog(settings, window) {
 /* -- log rows -------------------------------------------------------------- */
 
 function jobToRow(entry) {
-    const text = (entry.text ?? '').replace(/\s+/g, ' ').trim() ||
-        _('(no text)');
+    // When the "log-text" setting is off the record stores only a length, not
+    // the recognised text, so show that rather than a preview.
+    const text = entry.text !== undefined
+        ? ((entry.text ?? '').replace(/\s+/g, ' ').trim() || _('(no text)'))
+        : _('%d characters').replace('%d', String(entry.text_length ?? 0));
     const status = entry.success ? _('OK') : (entry.error ?? _('Error'));
     const when = entry.time ?? '…';
     const dur = entry.duration_ms ?? 0;
@@ -227,6 +230,11 @@ export default class GrapePreferences extends ExtensionPreferences {
             reloadLog();
         });
 
+        // Log privacy: when off, only the length of recognised text is stored.
+        const logTextSwitch = get('log_text_switch');
+        if (logTextSwitch)
+            settings.bind('log-text', logTextSwitch, 'active',
+                Gio.SettingsBindFlags.DEFAULT);
         reloadLog();
         refreshStatus();
     }

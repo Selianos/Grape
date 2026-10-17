@@ -163,7 +163,7 @@ export default class GrapeExtension extends Extension {
                         time: new Date().toISOString(),
                         durationMs: (GLib.get_monotonic_time() - startUs) / 1000,
                         ...record,
-                    });
+                    }, this._settings.get_boolean('log-text'));
                 } catch (err) {
                     console.warn(`Grape: could not write the job log: ${err.message}`);
                 }
