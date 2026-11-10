@@ -22,6 +22,11 @@ Gio._promisify(Gio.OutputStream.prototype, 'write_all_async', 'write_all_finish'
  * @returns {Promise<boolean>} true once wl-copy has the whole text
  */
 export async function copyWithWlCopy(wlCopy, text, cancellable = null) {
+    // Spawning and then closing stdin unwritten would hand wl-copy an empty
+    // selection, so a job cancelled before this point must not start it.
+    if (cancellable?.is_cancelled())
+        return false;
+
     let pid = 0;
     try {
         let stdinFd;
@@ -49,7 +54,12 @@ export async function copyWithWlCopy(wlCopy, text, cancellable = null) {
         console.warn(`Grape: wl-copy could not set the clipboard: ${err.message}`);
         return false;
     } finally {
-        if (pid !== 0)
-            GLib.spawn_close_pid(pid);
+        // DO_NOT_REAP_CHILD hands reaping to us: wl-copy's foreground process
+        // exits as soon as its daemon has forked, and without a child watch it
+        // would stay a zombie of gnome-shell after every copy.
+        if (pid !== 0) {
+            GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid,
+                (childPid) => GLib.spawn_close_pid(childPid));
+        }
     }
 }

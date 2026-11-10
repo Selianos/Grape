@@ -27,6 +27,7 @@ export default class GrapeExtension extends Extension {
     _taken = false;
     _enabled = false;
     _cancellable = null;
+    _shortcutBound = false;
 
     enable() {
         this._enabled = true;
@@ -57,7 +58,7 @@ export default class GrapeExtension extends Extension {
         this._cancellable?.cancel();
         this._cancellable = null;
 
-        Main.wm.removeKeybinding(SCHEMA_KEY);
+        this._unbindShortcut();
         this._capture?.disconnect();
         this._settings?.disconnectObject(this);
         this._settings = null;
@@ -71,13 +72,22 @@ export default class GrapeExtension extends Extension {
     // -- keybinding ---------------------------------------------------------
 
     _registerShortcut() {
-        Main.wm.removeKeybinding(SCHEMA_KEY);
+        this._unbindShortcut();
         Main.wm.addKeybinding(
             SCHEMA_KEY,
             this._settings,
             Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
             Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
             () => this._onShortcut());
+        this._shortcutBound = true;
+    }
+
+    _unbindShortcut() {
+        // Removing a binding that was never added makes mutter log a warning.
+        if (!this._shortcutBound)
+            return;
+        Main.wm.removeKeybinding(SCHEMA_KEY);
+        this._shortcutBound = false;
     }
 
     // -- flow ---------------------------------------------------------------
