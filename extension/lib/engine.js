@@ -93,4 +93,26 @@ export class Engine {
             // exists but its Exec could not be started, crashed or was killed.
             err.message.includes('Error.Spawn.');
     }
+
+    /**
+     * One-line, user-facing text for a failed call.
+     *
+     * Remote errors reach the extension as
+     * "GDBus.Error:io.github.Selianos.Grape1.Error.BadImage: message", and the
+     * engine puts file paths in some messages. strip_remote_error() removes that
+     * prefix in place, so the caller must read err.message for the job log
+     * before calling this.
+     * @param {object} err
+     * @returns {string}
+     */
+    static describe(err) {
+        if (!err || !err.message)
+            return '';
+        try {
+            Gio.DBusError.strip_remote_error(err);
+        } catch {
+            // Not a remote D-Bus error: its own message is already readable.
+        }
+        return err.message;
+    }
 }

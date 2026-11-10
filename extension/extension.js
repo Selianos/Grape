@@ -161,7 +161,9 @@ export default class GrapeExtension extends Extension {
                        Engine.isNotInstalled(err)) {
                 this._notifyMissing();
             } else {
-                this._notify(_('Failed to copy'), err.message);
+                // The log keeps the raw message (it names the error); the
+                // notification gets the stripped one.
+                this._notify(_('Failed to copy'), Engine.describe(err));
             }
         } finally {
             // Release the guard first: a throw from appendJob must not leave

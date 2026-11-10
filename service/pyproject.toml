@@ -23,7 +23,8 @@ classifiers = [
 dependencies = [
     "dbus-fast>=2.21,<3",
     "rapidocr>=2.0,<3",
-    "onnxruntime>=1.16",
+    # rapidocr 2.x is built against onnxruntime 1.x; 2.0 is a new ABI.
+    "onnxruntime>=1.16,<2",
     # cv2 is loaded directly in ocr.py's _load_image; it currently arrives as a
     # transitive requirement of rapidocr (opencv-python). Declare it so a future
     # rapidocr release cannot silently drop it. Keep the same distribution as
