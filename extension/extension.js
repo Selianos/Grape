@@ -238,7 +238,7 @@ export default class GrapeExtension extends Extension {
     _notifyMissing() {
         const notification = this._notify(
             _('Failed to copy'),
-            _('The engine is not installed.'));
+            _('The engine is not installed or could not start.'));
         notification.addAction(
             _('Open install guide'),
             () => Gio.AppInfo.launch_default_for_uri(INSTALL_GUIDE, null));

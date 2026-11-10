@@ -17,7 +17,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
-from .paths import MAX_LONG_EDGE_PX
+from .paths import MAX_IMAGE_PIXELS, MAX_LONG_EDGE_PX
+
+#: RapidOCR upscales a crop until its *short* side reaches Det.limit_side_len
+#: (limit_type "min"), so an 800x100 single-line selection was being detected at
+#: 5888x736 — ~7x the pixels it needed. At 448 the same line is recognised in
+#: 208 ms instead of 394 ms and several garbled lines come out clean, with no drop
+#: in confidence across the bench crops. Re-run tools/bench.py before changing.
+DET_LIMIT_SIDE_LEN = 448
+
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -197,6 +205,8 @@ class OCREngine:
             "Det.model_path": str(self._model_path("det.onnx")),
             "Rec.model_path": str(self._model_path("rec.onnx")),
             "Cls.model_path": str(self._model_path("cls.onnx")),
+            "Det.limit_side_len": DET_LIMIT_SIDE_LEN,
+            "Det.limit_type": "min",
         }
         engine = RapidOCR(params=params)
         self._engine = engine
@@ -204,8 +214,27 @@ class OCREngine:
 
 
     def _load_image(self, image_path: Path) -> "Any":
-        """Decode the image, downscaling so inference stays inside the budget."""
+        """Decode the image, refusing bitmaps too large to hold in memory.
+
+        ``MAX_IMAGE_BYTES`` bounds the file, not the bitmap: a flat 30000x30000
+        PNG compresses to a few hundred KB but decodes to ~2.7 GB. Read the size
+        from the header first so that allocation never happens.
+        """
         import cv2
+        from PIL import Image
+
+        try:
+            with Image.open(image_path) as header:
+                width, height = header.size
+        except Image.DecompressionBombError as exc:
+            raise BadImageError(f"image too large: {exc}") from exc
+        except OSError as exc:
+            raise BadImageError(f"could not decode image: {image_path}") from exc
+
+        if width * height > MAX_IMAGE_PIXELS:
+            raise BadImageError(
+                f"image too large ({width}x{height} = {width * height} pixels, "
+                f"max {MAX_IMAGE_PIXELS})")
 
         img = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
         if img is None:

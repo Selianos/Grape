@@ -29,10 +29,10 @@ dependencies = [
     # rapidocr release cannot silently drop it. Keep the same distribution as
     # rapidocr to avoid two packages installing conflicting cv2 modules.
     "opencv-python>=4.5.1.48",
+    # Pillow reads the image header in ocr.py's _load_image so an oversized
+    # bitmap is refused before cv2 allocates it.
+    "pillow>=10",
 ]
-
-[project.optional-dependencies]
-bench = ["pillow>=10"]
 
 [project.scripts]
 grape-engine = "grape_engine.setup_cmds:main"

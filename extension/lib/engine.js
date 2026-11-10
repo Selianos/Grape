@@ -78,14 +78,19 @@ export class Engine {
     }
 
     /**
-     * True when the service name is not activatable, i.e. the engine is not
-     * installed. The bus surfaces this as a ServiceUnknown/NameHasNoOwner error.
+     * True when the engine cannot be reached: either no activation file is
+     * installed, or the bus has one and failed to start the process from it.
+     * Both leave the user with nothing to retry, so both should point at the
+     * install guide rather than surface a raw D-Bus error.
      * @param {object} err
      */
     static isNotInstalled(err) {
         if (!err || !err.message)
             return false;
         return err.message.includes('ServiceUnknown') ||
-            err.message.includes('NameHasNoOwner');
+            err.message.includes('NameHasNoOwner') ||
+            // org.freedesktop.DBus.Error.Spawn.* — the activation file
+            // exists but its Exec could not be started, crashed or was killed.
+            err.message.includes('Error.Spawn.');
     }
 }

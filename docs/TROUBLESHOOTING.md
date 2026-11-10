@@ -76,16 +76,17 @@ gdbus call --session \
 
 ## High-DPI / fractional scaling
 
-OCR cost scales with the number of pixels in the selection, not the file's size:
-a 4K screenshot of text compresses to a few hundred KiB but still passes through
-the text detector slowly. The engine rejects files over 20 MiB (a sanity bound
-on file size), and independently downscales any selection whose long edge
-exceeds 2560 px before recognition, which keeps large-selection latency down
-while still detecting the text. Downscaling a dense, many-line full-screen
-capture can still exceed the 1.25 s budget, because recognition cost also
-scales with how many text lines are on screen; that is a known limitation
-being tracked for a follow-up. If a large selection still feels slow or drops
-fine text, select a smaller region.
+OCR cost scales with how much text is in the selection — the number of words the
+detector finds, not the file's size and not the pixel count. A single-line or
+paragraph selection is recognised well inside the 1.25 s budget; a dense full-screen
+capture is not, because recognition runs once per detected word and a 4K frame can
+hold a few hundred of them (measured at 3–4 s on the reference machine).
+
+The engine rejects files over 20 MiB and bitmaps over 40 megapixels (both are
+sanity bounds, not latency bounds), and downscales any selection whose long edge
+exceeds 2560 px before recognition. That downscale trims detection cost but does
+not change the per-word recognition cost, so it does not make a dense full-screen
+capture fast. If a large selection feels slow, select a smaller region.
 
 ## A job does not show up in the log view, or shows the wrong text
 
