@@ -27,9 +27,16 @@ SERVICE_FILE = SERVICE_FILE_DIR / f"{BUS_NAME}.service"
 #: The engine quits after this long with no D-Bus calls; the bus restarts it.
 IDLE_TIMEOUT_S = 120
 
-#: Reject images larger than this. Large paragraph crops are the slow case;
-#: this cap keeps a single job inside the 1.25 s budget.
+#: Reject images larger than this. This is a sanity bound on file size only —
+#: it does NOT bound latency, because detection cost scales with pixels and a
+#: 4K screenshot of flat UI text compresses to a few hundred KB. MAX_LONG_EDGE_PX
+#: is what keeps a job inside the 1.25 s budget.
 MAX_IMAGE_BYTES = 20 * 1024 * 1024  # 20 MiB
+
+#: Downscale anything whose long edge exceeds this before inference. Detection
+#: is the dominant cost and it scales with pixel count, so this is the real
+#: latency control. Measure with tools/bench.py before changing it.
+MAX_LONG_EDGE_PX = 2560
 
 #: Recognised file extensions for an image passed to ``Recognize``.
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}

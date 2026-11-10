@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
+from .paths import MAX_LONG_EDGE_PX
+
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
@@ -201,6 +203,26 @@ class OCREngine:
         self._loaded = True
 
 
+    def _load_image(self, image_path: Path) -> "Any":
+        """Decode the image, downscaling so inference stays inside the budget."""
+        import cv2
+
+        img = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
+        if img is None:
+            raise BadImageError(f"could not decode image: {image_path}")
+
+        height, width = img.shape[:2]
+        long_edge = max(height, width)
+        if long_edge <= MAX_LONG_EDGE_PX:
+            return img
+
+        scale = MAX_LONG_EDGE_PX / long_edge
+        size = (max(1, round(width * scale)), max(1, round(height * scale)))
+        # INTER_AREA averages rather than samples, so thin glyph strokes survive a
+        # downscale better than the default bilinear filter.
+        return cv2.resize(img, size, interpolation=cv2.INTER_AREA)
+
+
     def recognize(self, image_path: str | Path) -> RecognitionResult:
         """OCR one image file and return grouped text and metadata."""
         if not self._loaded:
@@ -212,7 +234,7 @@ class OCREngine:
 
         start = time.perf_counter()
         try:
-            raw = self._engine(str(image_path))
+            raw = self._engine(self._load_image(image_path))
         except Exception as exc:  # RapidOCR raises assorted errors on bad input
             raise BadImageError(f"could not read image: {exc}") from exc
         elapsed_ms = int(round((time.perf_counter() - start) * 1000))

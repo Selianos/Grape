@@ -76,9 +76,16 @@ gdbus call --session \
 
 ## High-DPI / fractional scaling
 
-At 200% scaling a crop holds four times the pixels, which can push a large
-paragraph past the 1.25 s budget. The extension caps the image size it will pass
-to the engine (20 MiB). If large selections feel slow, select smaller regions.
+OCR cost scales with the number of pixels in the selection, not the file's size:
+a 4K screenshot of text compresses to a few hundred KiB but still passes through
+the text detector slowly. The engine rejects files over 20 MiB (a sanity bound
+on file size), and independently downscales any selection whose long edge
+exceeds 2560 px before recognition, which keeps large-selection latency down
+while still detecting the text. Downscaling a dense, many-line full-screen
+capture can still exceed the 1.25 s budget, because recognition cost also
+scales with how many text lines are on screen; that is a known limitation
+being tracked for a follow-up. If a large selection still feels slow or drops
+fine text, select a smaller region.
 
 ## A job does not show up in the log view, or shows the wrong text
 
