@@ -107,10 +107,6 @@ By default the log stores only how many characters were recognised, not the
 text itself, because a screen capture can contain passwords. Turn on **Store
 recognised text** in preferences if you want the text kept.
 
-If you have disabled saving to disk (the `org.gnome.desktop.lockdown
-disable-save-to-disk` setting), GNOME's screenshot UI writes no file and Grape
-has nothing to read, so the shortcut does nothing.
-
 ## Still stuck
 
 Check the Shell log and include the output of `grape-engine doctor` when you
