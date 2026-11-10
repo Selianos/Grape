@@ -14,6 +14,7 @@ import {Capture} from './lib/capture.js';
 import {Engine} from './lib/engine.js';
 import {appendJob} from './lib/joblog.js';
 import {INSTALL_GUIDE} from './lib/links.js';
+import {copyWithWlCopy} from './lib/clipboard.js';
 
 const SCHEMA_KEY = 'ocr-shortcut';
 
@@ -134,9 +135,18 @@ export default class GrapeExtension extends Extension {
             const {text} = await this._engine.recognize(path, cancellable);
             if (!this._enabled)
                 return;
-            this._copyToClipboard(text);
-            this._notify(_('Text copied'));
-            record = {success: true, error: null, text};
+            const copied = await this._copyToClipboard(text, cancellable);
+            if (!this._enabled)
+                return;
+            if (copied) {
+                this._notify(_('Text copied'));
+                record = {success: true, error: null, text};
+            } else {
+                this._notify(
+                    _('Failed to copy'),
+                    _('The clipboard could not be set.'));
+                record = {success: false, error: 'clipboard', text};
+            }
         } catch (err) {
             if (err instanceof Gio.IOErrorEnum && err.code === Gio.IOErrorEnum.CANCELLED)
                 return;
@@ -173,43 +183,34 @@ export default class GrapeExtension extends Extension {
 
     // -- clipboard ------------------------------------------------------------
 
-    _copyToClipboard(text) {
+    async _copyToClipboard(text, cancellable = null) {
         // GNOME's screenshot UI already put the captured image on the
         // clipboard, from within gnome-shell. Clipboard managers that watch
         // the owner-change signal (e.g. Vicinae, Clipboard Indicator) only
         // record a selection when the owner actually changes, and the Shell
         // setting its own text does not count as one. wl-copy is a separate
         // process, so the owner really changes and the entry shows up.
-        // Fall back to the Shell's clipboard API when wl-copy is not installed:
-        // paste still works, the entry just may not reach history managers.
+        // Fall back to the Shell's clipboard API when wl-copy is not installed
+        // or cannot start: paste still works, the entry just may not reach
+        // history managers.
         const wlCopy = GLib.find_program_in_path('wl-copy');
-        if (wlCopy)
-            this._copyWithWlCopy(wlCopy, text);
-        else
-            this._copyWithStClipboard(text);
-    }
-
-    _copyWithWlCopy(wlCopy, text) {
-        // Gio.Subprocess spawns wl-copy in a way that its forked daemon exits 0
-        // but never claims the clipboard, so the text silently never lands.
-        // GLib.spawn_async detaches the daemon that then owns and serves the
-        // selection. Pass text as one argv element (with `--`) so spaces and
-        // newlines survive verbatim and a leading dash is not read as an option.
-        try {
-            GLib.spawn_async(
-                null,
-                [wlCopy, '-t', 'text/plain', '--', text],
-                null,
-                GLib.SpawnFlags.SEARCH_PATH,
-                null);
-        } catch (err) {
-            console.warn('wl-copy failed to set the clipboard: ' + err.message);
-        }
+        if (wlCopy && await copyWithWlCopy(wlCopy, text, cancellable))
+            return true;
+        // Disabled while wl-copy was running: touch nothing further.
+        if (!this._enabled)
+            return false;
+        return this._copyWithStClipboard(text);
     }
 
     _copyWithStClipboard(text) {
-        const clipboard = St.Clipboard.get_default();
-        clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
+        try {
+            const clipboard = St.Clipboard.get_default();
+            clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
+            return true;
+        } catch (err) {
+            console.warn(`Grape: could not set the clipboard: ${err.message}`);
+            return false;
+        }
     }
 
     // -- notifications ------------------------------------------------------
