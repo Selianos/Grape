@@ -21,14 +21,21 @@ function logPath() {
 
 function ensureParentDir(file) {
     const parent = file.get_parent();
-    if (parent && !parent.query_exists(null)) {
+    if (!parent)
+        return;
+    if (!parent.query_exists(null))
         parent.make_directory_with_parents(null);
-        // The log holds recognised text, which can be anything on screen, so
-        // keep the directory itself out of other users' reach. The file mode
-        // is tightened again after every write (see appendJob).
+    // The log holds recognised text, which can be anything on screen, so keep the
+    // directory itself out of other users' reach. Set on every append rather than
+    // only at creation: installs from before this was added already have a 0755
+    // directory, and would keep it forever. The file mode is tightened again
+    // after every write (see appendJob).
+    try {
         parent.set_attribute_uint32(
             Gio.FILE_ATTRIBUTE_UNIX_MODE, 0o700,
             Gio.FileQueryInfoFlags.NONE, null);
+    } catch (err) {
+        console.debug(`Grape: could not tighten the log directory mode: ${err.message}`);
     }
 }
 
