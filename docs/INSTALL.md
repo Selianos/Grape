@@ -65,8 +65,8 @@ grape-engine doctor
 ```
 
 `doctor` should print `ok` for Python, `onnxruntime`, `rapidocr`, the model
-files and the D-Bus service file. It exits with a non-zero status if any check
-fails.
+files, the D-Bus service file, the interpreter that file starts, and your
+Pictures directory. It exits with a non-zero status if any check fails.
 
 > **Linux / Wayland** — the engine and the extension talk over the **session**
 > D-Bus, which is available on the Wayland session already.
@@ -95,9 +95,11 @@ Grape ships with **no default shortcut** (GNOME forbids extensions that ship a
 default binding that touches the clipboard). On first enable, a notification
 "Set a shortcut to start" appears; click **Open preferences**.
 
-In the preferences window, in the **Shortcut** group, click the **OCR shortcut**
-row and press a key combination such as <kbd>Ctrl</kbd>+<kbd>T</kbd>. Press
-<kbd>Backspace</kbd> in the capture dialog to clear it.
+In the preferences window, in the **Shortcut** group, click the **Keyboard
+shortcut** row and press a key combination that nothing else uses, such as
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>. The shortcut is global, so a
+combination your apps use (like <kbd>Ctrl</kbd>+<kbd>T</kbd>) would stop working
+in them. Press <kbd>Backspace</kbd> in the capture dialog to clear it.
 
 ## 4. Use it
 
@@ -124,7 +126,7 @@ Then disable the extension in the Extensions app.
 | --- | --- |
 | `~/.local/share/grape/models` | `det.onnx`, `rec.onnx`, `cls.onnx` |
 | `~/.local/share/dbus-1/services/io.github.Selianos.Grape1.service` | D-Bus activation file |
-| `~/.local/state/grape/jobs.jsonl` | Last 50 jobs (read by preferences) |
+| `~/.local/state/grape/jobs.jsonl` | Last 50 jobs (read by preferences). Stores only the length of the recognised text unless **Store recognised text** is on |
 
 Nothing else is written. The extension and engine never need `sudo` and never
 touch the network at runtime.

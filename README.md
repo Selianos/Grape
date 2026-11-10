@@ -62,13 +62,15 @@ installed", which links to the install guide).
 ```
 extension/     → the GNOME Shell extension (zipped for EGO)
 service/       → the Python OCR service (grape-engine)
+docs/          → install guide, troubleshooting, D-Bus API
 ```
 
 ## Development
 
 The extension lives in `extension/` and is zipped for
 [extensions.gnome.org](https://extensions.gnome.org/). The engine is a single
-Python package in `service/`.
+Python package in `service/`. They talk over the session bus; the interface is
+documented in [docs/DBUS-API.md](docs/DBUS-API.md).
 `grape-engine install-models` guesses which RapidOCR model files to use; this is
 confirmed against a real RapidOCR install (det/rec = PP-OCRv4, cls = mobile v2.0).
 Run `grape-engine doctor` right after to confirm the files landed.

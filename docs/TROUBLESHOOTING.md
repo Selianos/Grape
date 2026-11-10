@@ -7,7 +7,12 @@ wrong.
 ## The shortcut does nothing
 
 - **No shortcut is set.** Grape has no default shortcut. Open the extension's
-  preferences and click the **OCR shortcut** row to record one.
+  preferences and click the **Keyboard shortcut** row to record one.
+- **The shortcut is already taken.** If another app, extension or GNOME itself
+  (for example <kbd>Print</kbd>) already uses the combination, GNOME keeps it
+  for them and Grape's shortcut silently does nothing — GNOME gives the
+  extension no way to detect this. Pick a different combination, such as
+  <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>.
 - The screenshot UI does open but nothing is copied afterwards — see the next
   sections.
 - Check the Shell log for errors while you press the shortcut:
@@ -37,6 +42,9 @@ If `doctor` reports a **failed** check, fix what it names:
 - **models** missing — run `grape-engine install-models` (this needs the network
   once).
 - **dbus service file** missing — run `grape-engine install-dbus`.
+- **dbus Exec interpreter** missing — the activation file points at a Python
+  that no longer exists (after `pipx reinstall` or a Fedora Python upgrade).
+  Run `grape-engine install-dbus` again to rewrite it.
 
 After fixing, run `doctor` again until every line says `ok`. Then press your
 shortcut again. The engine is started by the session bus on demand, so no
@@ -91,9 +99,17 @@ capture fast. If a large selection feels slow, select a smaller region.
 ## A job does not show up in the log view, or shows the wrong text
 
 The log lives in `~/.local/state/grape/jobs.jsonl` and is trimmed to the last 50
-entries. The preferences **Show log** dialog reads that file, newest first. If
+entries. Expanding **Show log** in preferences reads that file, newest first. If
 the file is missing or empty, no job was recorded — check the Shell log for the
-reason. Use **Clear log** to empty it.
+reason. Use the trash button to clear it.
+
+By default the log stores only how many characters were recognised, not the
+text itself, because a screen capture can contain passwords. Turn on **Store
+recognised text** in preferences if you want the text kept.
+
+If you have disabled saving to disk (the `org.gnome.desktop.lockdown
+disable-save-to-disk` setting), GNOME's screenshot UI writes no file and Grape
+has nothing to read, so the shortcut does nothing.
 
 ## Still stuck
 
