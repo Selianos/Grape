@@ -7,7 +7,7 @@ const SCREENSHOT_MODE = 0;
 /**
  * Thin wrapper around GNOME's built-in screenshot UI. The rest of the extension
  * only ever calls open(), onTaken() and onClosed(), so a change in the Shell's
- * internals is contained here (see the risks section in docs/ARCHITECTURE.md).
+ * internals is contained here: Main.screenshotUI is not a stable API.
  */
 export class Capture {
     constructor() {

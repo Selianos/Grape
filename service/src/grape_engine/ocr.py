@@ -13,7 +13,7 @@ joined with a single newline (paragraph line breaks are preserved).
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -23,7 +23,7 @@ from .paths import MAX_IMAGE_PIXELS, MAX_LONG_EDGE_PX
 #: (limit_type "min"), so an 800x100 single-line selection was being detected at
 #: 5888x736 — ~7x the pixels it needed. At 448 the same line is recognised in
 #: 208 ms instead of 394 ms and several garbled lines come out clean, with no drop
-#: in confidence across the bench crops. Re-run tools/bench.py before changing.
+#: in confidence across the benchmark crops. Re-measure latency before changing.
 DET_LIMIT_SIDE_LEN = 448
 
 
@@ -66,7 +66,6 @@ class RecognitionResult:
     line_count: int = 0
     confidence: float = 0.0
     elapsed_ms: int = 0
-    boxes: list[Any] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -285,7 +284,6 @@ class OCREngine:
             line_count=line_count,
             confidence=round(confidence, 4),
             elapsed_ms=elapsed_ms,
-            boxes=[item[0] for item in items],
         )
 
     @staticmethod

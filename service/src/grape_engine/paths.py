@@ -11,14 +11,12 @@ from pathlib import Path
 BUS_NAME = "io.github.Selianos.Grape1"
 OBJECT_PATH = "/io/github/Selianos/Grape1"
 ERROR_ROOT = f"{BUS_NAME}.Error"
-CONNECTION_NAME = f"{BUS_NAME}.service"  # Name= line in the activation file
 
 # -- Data locations ---------------------------------------------------------
 # Everything lives under the user's home; no root needed for the engine.
 DATA_DIR = Path.home() / ".local" / "share" / "grape"
 MODELS_DIR = DATA_DIR / "models"
 STATE_DIR = Path.home() / ".local" / "state" / "grape"
-LOG_FILE = STATE_DIR / "jobs.jsonl"
 
 SERVICE_FILE_DIR = Path.home() / ".local" / "share" / "dbus-1" / "services"
 SERVICE_FILE = SERVICE_FILE_DIR / f"{BUS_NAME}.service"
@@ -37,8 +35,8 @@ MAX_IMAGE_BYTES = 20 * 1024 * 1024  # 20 MiB
 #: screenshot, which is the largest capture GNOME can produce.
 MAX_IMAGE_PIXELS = 40_000_000
 
-#: Downscale anything whose long edge exceeds this before inference. Measure with
-#: tools/bench.py before changing it: on a dense full-screen capture this trims
+#: Downscale anything whose long edge exceeds this before inference. Re-measure
+#: latency before changing it: on a dense full-screen capture this trims
 #: detection cost but does NOT reach the 1.25 s budget, because recognition runs
 #: per detected word and that count does not change with the scale.
 MAX_LONG_EDGE_PX = 2560

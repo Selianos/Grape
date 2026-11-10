@@ -26,7 +26,7 @@ const busProxy = new Gio.DBusProxy({
     g_flags: Gio.DBusProxyFlags.NONE,
 });
 
-/* -- engine status (unchanged) --------------------------------------------- */
+/* -- engine status ------------------------------------------------------- */
 
 // The engine is "installed" when its session-bus activation file is present.
 const SERVICE_FILE = GLib.build_filenamev([
@@ -34,7 +34,7 @@ const SERVICE_FILE = GLib.build_filenamev([
     `${BUS_NAME}.service`,
 ]);
 
-//: Human-readable label for each GetStatus state.
+// Human-readable label for each GetStatus state.
 const STATE_LABELS = {
     'ready': () => _('Ready'),
     'loading': () => _('Loading models…'),

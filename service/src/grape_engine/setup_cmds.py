@@ -19,7 +19,6 @@ from .paths import (
     BUS_NAME,
     DATA_DIR,
     MODELS_DIR,
-    OBJECT_PATH,
     SERVICE_FILE,
     SERVICE_FILE_DIR,
     ensure_dirs,

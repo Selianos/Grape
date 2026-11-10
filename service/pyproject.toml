@@ -38,8 +38,5 @@ dependencies = [
 [project.scripts]
 grape-engine = "grape_engine.setup_cmds:main"
 
-[project.gui-scripts]
-grape-engine-dbus = "grape_engine.__main__:main"
-
 [tool.setuptools.packages.find]
 where = ["src"]

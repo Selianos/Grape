@@ -4,22 +4,17 @@ Thumbs.db
 *.swp
 *~
 
-# Python
+# Python — recreated whenever the engine runs or is installed from ./service
 __pycache__/
 *.py[cod]
 *.egg-info/
-.venv/
-venv/
-.pytest_cache/
-
-# Build artifacts
 service/build/
 service/dist/
+
+# Extension build output
 extension/schemas/gschemas.compiled
+*.shell-extension.zip
 
-# Private agent/working notes — not shipped.
+# Private, not published: agent notes and the latency benchmark
 /.agent/
-/.agent/
-
-# QA artifacts are generated per run.
-/QA/
+/tools/

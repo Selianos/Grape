@@ -10,12 +10,6 @@ const BUS_NAME = 'io.github.Selianos.Grape1';
 const OBJECT_PATH = '/io/github/Selianos/Grape1';
 const ERROR_ROOT = `${BUS_NAME}.Error`;
 
-export const ErrorName = {
-    NoText: `${ERROR_ROOT}.NoText`,
-    BadImage: `${ERROR_ROOT}.BadImage`,
-    ModelMissing: `${ERROR_ROOT}.ModelMissing`,
-};
-
 /**
  * Async proxy to the Grape OCR service. The service is started by the session
  * bus on the first call (D-Bus activation), so nothing runs at login and it
@@ -59,13 +53,6 @@ export class Engine {
         // tuple, so the (sa{sv}) struct arrives as [[text, meta]].
         const [[text, meta]] = recursiveUnpack(reply);
         return {text, meta};
-    }
-
-    /** Return {state, version, models} without loading the engine. */
-    async getStatus() {
-        const reply = await this._call('GetStatus', new GLib.Variant('()', []));
-        const [[state, version, models]] = recursiveUnpack(reply);
-        return {state, version, models};
     }
 
     /**
