@@ -53,7 +53,10 @@ def pictures_dir() -> Path:
     GNOME saves captures to ``<Pictures>/<localized "Screenshots">``. Both
     halves are translated and the first is user-configurable, so neither can be
     hardcoded: honour the environment, then user-dirs.dirs, then the
-    xdg-user-dir helper, and only then fall back to ``~/Pictures``.
+    xdg-user-dir helper. With no Pictures directory configured GNOME saves under
+    the home directory itself (``get_user_special_dir(PICTURES) ||
+    get_home_dir()`` in screenshot.js), so the last fallback is home, not
+    ``~/Pictures``.
     """
     env = os.environ.get("XDG_PICTURES_DIR")
     if env:
@@ -79,7 +82,7 @@ def pictures_dir() -> Path:
     except (OSError, subprocess.SubprocessError):
         pass
 
-    return Path.home() / "Pictures"
+    return Path.home()
 
 
 def dbus_error(name: str) -> str:
