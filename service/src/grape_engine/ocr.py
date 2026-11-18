@@ -20,11 +20,14 @@ from typing import Any, Sequence
 from .paths import MAX_IMAGE_PIXELS, MAX_LONG_EDGE_PX
 
 #: RapidOCR upscales a crop until its *short* side reaches Det.limit_side_len
-#: (limit_type "min"), so an 800x100 single-line selection was being detected at
-#: 5888x736 — ~7x the pixels it needed. At 448 the same line is recognised in
-#: 208 ms instead of 394 ms and several garbled lines come out clean, with no drop
-#: in confidence across the benchmark crops. Re-measure latency before changing.
-DET_LIMIT_SIDE_LEN = 448
+#: (limit_type "min"). Upscaling a paragraph splits its lines into overlapping
+#: fragments, and the recogniser reads the overlap as extra letters ("F Friday"),
+#: so only genuinely tiny crops are enlarged: at 128 a 16 px-tall line is still
+#: read exactly, while paragraphs and ordinary lines are detected at their own
+#: size. Measured on 128 rendered paragraphs (8 fonts, 13-20 px, light and dark,
+#: 1x and 2x): 448 left 21% of spaces missing, 128 leaves 0.03%. Re-measure on
+#: both lines and paragraphs before changing it.
+DET_LIMIT_SIDE_LEN = 128
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +165,11 @@ class OCREngine:
     """
 
     #: model file names we require inside ``model_dir`` (install-models writes these).
-    MODEL_FILES = ("det.onnx", "rec.onnx", "cls.onnx")
+    #: The recogniser is RapidOCR's English model: the default Chinese one drops
+    #: most spaces between English words. The angle classifier is never run, but
+    #: RapidOCR builds it regardless and would otherwise fall back to a default
+    #: model path, so it is installed and passed explicitly.
+    MODEL_FILES = ("det.onnx", "rec-en.onnx", "cls.onnx")
 
     def __init__(self, model_dir: str | Path):
         self._model_dir = Path(model_dir)
@@ -199,10 +206,12 @@ class OCREngine:
         params = {
             "Global.text_score": 0.5,
             "Global.use_det": True,
-            "Global.use_cls": True,
+            # Screen text is never upside down, and the classifier sometimes
+            # flips a correct line and garbles it.
+            "Global.use_cls": False,
             "Global.use_rec": True,
             "Det.model_path": str(self._model_path("det.onnx")),
-            "Rec.model_path": str(self._model_path("rec.onnx")),
+            "Rec.model_path": str(self._model_path("rec-en.onnx")),
             "Cls.model_path": str(self._model_path("cls.onnx")),
             "Det.limit_side_len": DET_LIMIT_SIDE_LEN,
             "Det.limit_type": "min",

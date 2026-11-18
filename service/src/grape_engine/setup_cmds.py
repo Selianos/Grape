@@ -1,16 +1,19 @@
 """Command-line helpers: ``grape-engine install-models|install-dbus|uninstall|doctor``.
 
 These are the four commands from docs/INSTALL.md that prepare the engine. Models
-are fetched once at install time and never at runtime; the D-Bus activation file is
+are copied from the rapidocr package, plus one download of the English
+recogniser, at install time only and never at runtime; the D-Bus activation file is
 written here so the session bus can start the service on the first call.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.metadata
 import shutil
 import sys
+import urllib.request
 from pathlib import Path
 
 from . import __version__
@@ -54,8 +57,53 @@ def _find_rapidocr_models() -> list[Path]:
     return onnx_files
 
 
-#: Every role install-models must resolve before it reports success.
-REQUIRED_ROLES = ("det", "rec", "cls")
+#: Models copied from the rapidocr package. Its bundled recogniser is the Chinese
+#: one, which drops most spaces between English words, so it is not used.
+BUNDLED_ROLES = ("det", "cls")
+
+#: RapidOCR's English recogniser, pinned to the release and checksum that
+#: rapidocr 2.1.0 lists in its own default_models.yaml. Fetched once by
+#: install-models; the engine never downloads anything at runtime.
+REC_EN_URL = (
+    "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v2.1.0/"
+    "onnx/PP-OCRv4/rec/en_PP-OCRv4_rec_infer.onnx"
+)
+REC_EN_SHA256 = "e8770c967605983d1570cdf5352041dfb68fa0c21664f49f47b155abd3e0e318"
+REC_EN_FILE = "rec-en.onnx"
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _install_rec_en() -> bool:
+    """Download the English recogniser, verify it, and move it into place."""
+    dest = MODELS_DIR / REC_EN_FILE
+    if dest.is_file() and _sha256(dest) == REC_EN_SHA256:
+        print(f"  - {dest.name}  already installed")
+        return True
+
+    partial = dest.with_suffix(".part")
+    print(f"  - {dest.name}  downloading {REC_EN_URL}")
+    try:
+        with urllib.request.urlopen(REC_EN_URL, timeout=60) as response, partial.open("wb") as f:
+            shutil.copyfileobj(response, f)
+    except OSError as exc:
+        partial.unlink(missing_ok=True)
+        print(f"error: could not download the English recognition model: {exc}", file=sys.stderr)
+        return False
+
+    if _sha256(partial) != REC_EN_SHA256:
+        partial.unlink()
+        print("error: the downloaded recognition model failed its checksum; not installed",
+              file=sys.stderr)
+        return False
+    partial.replace(dest)
+    return True
 
 
 def cmd_install_models() -> int:
@@ -70,10 +118,10 @@ def cmd_install_models() -> int:
     candidates: dict[str, list[Path]] = {}
     for src in onnx_files:
         role = _classify_model(src.name)
-        if role is not None:
+        if role in BUNDLED_ROLES:
             candidates.setdefault(role, []).append(src)
 
-    missing = [role for role in REQUIRED_ROLES if role not in candidates]
+    missing = [role for role in BUNDLED_ROLES if role not in candidates]
     if missing:
         print(f"error: no model found for: {', '.join(missing)}", file=sys.stderr)
         print(f"  candidates were: {', '.join(f.name for f in onnx_files)}", file=sys.stderr)
@@ -88,16 +136,21 @@ def cmd_install_models() -> int:
             print(f"  {role}: {', '.join(f.name for f in files)}", file=sys.stderr)
         return 1
 
-    installed: list[tuple[str, Path, Path]] = []
-    for role in REQUIRED_ROLES:
+    print(f"installing models into {MODELS_DIR}:")
+    for role in BUNDLED_ROLES:
         src = candidates[role][0]
         dest = MODELS_DIR / f"{role}.onnx"
         shutil.copyfile(src, dest)
-        installed.append((role, src, dest))
-
-    print(f"installed {len(installed)} model(s) into {MODELS_DIR}:")
-    for role, src, dest in installed:
         print(f"  - {dest.name}  <- {src.name}")
+
+    if not _install_rec_en():
+        return 1
+
+    # The Chinese recogniser from earlier versions; nothing loads it any more.
+    stale = MODELS_DIR / "rec.onnx"
+    if stale.is_file():
+        stale.unlink()
+        print(f"  - removed the old {stale.name}")
     return 0
 
 
@@ -191,7 +244,14 @@ def cmd_doctor() -> int:
         check("rapidocr", False, "not installed")
 
     missing = [n for n in OCREngine.MODEL_FILES if not (MODELS_DIR / n).is_file()]
-    check("models", not missing, ", ".join(missing) if missing else f"found in {MODELS_DIR}")
+    check("models", not missing,
+          f"missing {', '.join(missing)} (run grape-engine install-models)" if missing
+          else f"found in {MODELS_DIR}")
+    rec_en = MODELS_DIR / REC_EN_FILE
+    if rec_en.is_file():
+        check("English recognition model", _sha256(rec_en) == REC_EN_SHA256,
+              "checksum ok" if _sha256(rec_en) == REC_EN_SHA256
+              else "checksum mismatch (run grape-engine install-models)")
     check("dbus service file", SERVICE_FILE.is_file(), str(SERVICE_FILE))
 
     # The activation file bakes in sys.executable, so a pipx reinstall or a

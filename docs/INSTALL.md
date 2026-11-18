@@ -46,11 +46,15 @@ after it the engine never downloads anything again. The models go into
 grape-engine install-models
 ```
 
-> **For the first real test:** `install-models` guesses which `det`/`rec`/`cls` ONNX files
-> belong to your RapidOCR. This is confirmed against a real RapidOCR install
-> (det/rec = PP-OCRv4, cls = mobile v2.0), but still run `grape-engine doctor`
-> afterwards to confirm the files landed; if the filenames look wrong that is a
-> bug worth reporting.
+`install-models` copies the text detector from the RapidOCR package and
+downloads RapidOCR's English recognition model (about 7.6 MB, from
+`modelscope.cn`, where RapidOCR publishes its models). The download is checked
+against a pinned SHA-256 before it is installed. Running it again is safe: an
+already verified model is not downloaded twice.
+
+> **Upgrading from an earlier Grape:** run `grape-engine install-models` again.
+> Earlier versions used a recognition model that dropped spaces between
+> English words; until you do, the engine reports its models as missing.
 
 Register the service with your session bus so it can be started on demand:
 
@@ -124,7 +128,7 @@ Then disable the extension in the Extensions app.
 
 | Path | What it holds |
 | --- | --- |
-| `~/.local/share/grape/models` | `det.onnx`, `rec.onnx`, `cls.onnx` |
+| `~/.local/share/grape/models` | `det.onnx` (text detection), `rec-en.onnx` (English recognition), `cls.onnx` (required by RapidOCR, not used) |
 | `~/.local/share/dbus-1/services/io.github.Selianos.Grape1.service` | D-Bus activation file |
 | `~/.local/state/grape/jobs.jsonl` | Last 50 jobs (read by preferences). Stores only the length of the recognised text unless **Store recognised text** is on |
 

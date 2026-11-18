@@ -92,7 +92,7 @@ gdbus call --session --dest io.github.Selianos.Grape1 \
 gdbus call --session --dest io.github.Selianos.Grape1 \
   --object-path /io/github/Selianos/Grape1 \
   --method io.github.Selianos.Grape1.GetStatus
-# (('ready', '1.0.0', ['det.onnx', 'rec.onnx', 'cls.onnx']),)
+# (('ready', '1.0.0', ['det.onnx', 'rec-en.onnx', 'cls.onnx']),)
 ```
 
 Both methods return a single struct, so the output is nested one level deeper

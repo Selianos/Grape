@@ -71,9 +71,9 @@ The extension lives in `extension/` and is zipped for
 [extensions.gnome.org](https://extensions.gnome.org/). The engine is a single
 Python package in `service/`. They talk over the session bus; the interface is
 documented in [docs/DBUS-API.md](docs/DBUS-API.md).
-`grape-engine install-models` guesses which RapidOCR model files to use; this is
-confirmed against a real RapidOCR install (det/rec = PP-OCRv4, cls = mobile v2.0).
-Run `grape-engine doctor` right after to confirm the files landed.
+`grape-engine install-models` copies the text detector from the RapidOCR package
+and downloads RapidOCR's English recognition model, checked against a pinned
+SHA-256. Run `grape-engine doctor` right after to confirm the files landed.
 
 ## License
 
